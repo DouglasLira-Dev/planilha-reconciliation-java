@@ -1,0 +1,26 @@
+# Arquivos compilados
+target/
+*.class
+
+# Arquivos do Maven
+.mvn/
+.m2/
+
+# Arquivos do VS Code
+.vscode/
+.settings/
+.project
+.classpath
+
+# Arquivos de dados (planilhas e bancos)
+*.xlsx
+*.xls
+*.db
+*.sqlite
+
+# Arquivos temporários do Windows
+Thumbs.db
+desktop.ini
+
+# Logs
+*.log
