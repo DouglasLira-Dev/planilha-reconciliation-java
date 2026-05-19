@@ -4,8 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.ss.usermodel.DateUtil;
@@ -26,15 +28,51 @@ public class leitorPlanilha {
             Sheet sheet = workbook.getSheetAt(0);
             Iterator<Row> rowIterator = sheet.iterator();
             
-            // Pular cabeçalho
-            if (rowIterator.hasNext()) {
-                rowIterator.next();
+            if (!rowIterator.hasNext()) return lista;
+            
+            // Lê a primeira linha como cabeçalho
+            Row headerRow = rowIterator.next();
+            Map<String, Integer> colunaIndex = new HashMap<>();
+            for (Cell cell : headerRow) {
+                String nomeColuna = cell.getStringCellValue().trim().toLowerCase()
+                        .replaceAll("[^a-z0-9]", ""); // normaliza para comparação
+                colunaIndex.put(nomeColuna, cell.getColumnIndex());
             }
             
+            // Exibe os cabeçalhos encontrados (para depuração)
+            System.out.println("\n===== CABEÇALHOS DA PLANILHA (" + new File(caminhoArquivo).getName() + ") =====");
+            for (Map.Entry<String, Integer> entry : colunaIndex.entrySet()) {
+                System.out.println("  '" + entry.getKey() + "' -> coluna " + entry.getValue());
+            }
+            
+            // Mapeia os índices usando sinônimos
+            int idxMatricula = obterIndice(colunaIndex, "matricula", "matrícula", "numero", "id", "contrato", "registro");
+            int idxCpf = obterIndice(colunaIndex, "cpf", "cpfcnpj", "documento", "cpfcnpj");
+            int idxNome = obterIndice(colunaIndex, "nome", "nomestagiario", "estagiario", "nomeestagiario");
+            int idxNivel = obterIndice(colunaIndex, "nivel", "nivelestagio", "grau", "escolaridade", "nivelestagio");
+            int idxDataInicio = obterIndice(colunaIndex, "datainicio", "iniciocontrato", "data_inicio", "inicio", "dtinicio");
+            int idxDataFim = obterIndice(colunaIndex, "datafim", "fimcontrato", "data_fim", "fim", "dtfim");
+            int idxBanco = obterIndice(colunaIndex, "banco", "codigobanco", "bancocodigo");
+            int idxAgencia = obterIndice(colunaIndex, "agencia", "agenciabanco", "nr_agencia");
+            int idxConta = obterIndice(colunaIndex, "conta", "contacorrente", "numeroconta", "nr_conta");
+            
+            System.out.println("Índices mapeados:");
+            System.out.println("  Matrícula: " + idxMatricula);
+            System.out.println("  CPF: " + idxCpf);
+            System.out.println("  Nome: " + idxNome);
+            System.out.println("  Nível: " + idxNivel);
+            System.out.println("  Data Início: " + idxDataInicio);
+            System.out.println("  Data Fim: " + idxDataFim);
+            System.out.println("  Banco: " + idxBanco);
+            System.out.println("  Agência: " + idxAgencia);
+            System.out.println("  Conta: " + idxConta);
+            System.out.println("=======================================\n");
+            
+            // Agora percorre as linhas de dados
             while (rowIterator.hasNext()) {
                 Row row = rowIterator.next();
                 
-                // Verificar se a linha está vazia
+                // Verifica se a linha está vazia (opcional)
                 boolean linhaVazia = true;
                 for (int i = 0; i < 9; i++) {
                     Cell cell = row.getCell(i, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
@@ -48,15 +86,27 @@ public class leitorPlanilha {
                 
                 registroPlanilha registro = new registroPlanilha();
                 
-                registro.setMatricula(obterValorCelula(row.getCell(0)));
-                registro.setCpf(obterValorCelula(row.getCell(1)));
-                registro.setNome(obterValorCelula(row.getCell(2)));
-                registro.setNivelEstagio(obterValorCelula(row.getCell(3)));
-                registro.setDataInicioStr(obterValorCelula(row.getCell(4)));
-                registro.setDataFimStr(obterValorCelula(row.getCell(5)));
-                registro.setBanco(obterValorCelula(row.getCell(6)));
-                registro.setAgencia(obterValorCelula(row.getCell(7)));
-                registro.setConta(obterValorCelula(row.getCell(8)));
+                registro.setMatricula(obterValorCelulaComIndice(row, idxMatricula));
+                registro.setCpf(obterValorCelulaComIndice(row, idxCpf));
+                registro.setNome(obterValorCelulaComIndice(row, idxNome));
+                registro.setNivelEstagio(obterValorCelulaComIndice(row, idxNivel));
+                registro.setDataInicioStr(obterValorCelulaComIndice(row, idxDataInicio));
+                
+                // ========== DETECÇÃO DE REGISTRO CANCELADO ==========
+                String dataInicio = registro.getDataInicioStr();
+                if (dataInicio != null && dataInicio.toLowerCase().contains("cancelado")) {
+                    registro.setCancelado(true);
+                    // Limpa a data para evitar erro no parseData (pois não é uma data válida)
+                    registro.setDataInicioStr("");
+                } else {
+                    registro.setCancelado(false);
+                }
+                // ====================================================
+                
+                registro.setDataFimStr(obterValorCelulaComIndice(row, idxDataFim));
+                registro.setBanco(obterValorCelulaComIndice(row, idxBanco));
+                registro.setAgencia(obterValorCelulaComIndice(row, idxAgencia));
+                registro.setConta(obterValorCelulaComIndice(row, idxConta));
                 
                 // Aplica normalização
                 registro.setMatriculaNorm(normalizacao.normalizarMatricula(registro.getMatricula()));
@@ -76,6 +126,22 @@ public class leitorPlanilha {
         return lista;
     }
     
+    private static int obterIndice(Map<String, Integer> mapa, String... possiveisNomes) {
+        for (String nome : possiveisNomes) {
+            String chave = nome.toLowerCase().replaceAll("[^a-z0-9]", "");
+            if (mapa.containsKey(chave)) {
+                return mapa.get(chave);
+            }
+        }
+        return -1;
+    }
+    
+    private static String obterValorCelulaComIndice(Row row, int idx) {
+        if (idx < 0) return "";
+        Cell cell = row.getCell(idx, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
+        return obterValorCelula(cell);
+    }
+    
     private static String obterValorCelula(Cell cell) {
         if (cell == null) return "";
         
@@ -84,7 +150,11 @@ public class leitorPlanilha {
                 return cell.getStringCellValue().trim();
             case NUMERIC:
                 if (DateUtil.isCellDateFormatted(cell)) {
-                    return cell.getLocalDateTimeCellValue().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                    try {
+                        return cell.getLocalDateTimeCellValue().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
+                    } catch (Exception e) {
+                        return cell.getDateCellValue().toString();
+                    }
                 }
                 double valor = cell.getNumericCellValue();
                 if (valor == Math.floor(valor)) {

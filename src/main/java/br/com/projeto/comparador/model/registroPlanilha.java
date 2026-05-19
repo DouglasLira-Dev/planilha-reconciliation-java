@@ -13,6 +13,7 @@ public class registroPlanilha {
     private String banco;
     private String agencia;
     private String conta;
+    private boolean cancelado;
 
     // Campos normalizados (para comparação)
     private String matriculaNorm;
@@ -82,4 +83,7 @@ public class registroPlanilha {
 
     public String getContaNorm() { return contaNorm; }
     public void setContaNorm(String contaNorm) { this.contaNorm = contaNorm; }
+
+    public boolean isCancelado() { return cancelado; }
+    public void setCancelado(boolean cancelado) { this.cancelado = cancelado; }
 }
