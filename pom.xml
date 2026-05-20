@@ -45,7 +45,7 @@
             <version>2.10.1</version>
         </dependency>
 
-         <!-- Log4j2 para logs do Apache POI -->
+        <!-- Log4j2 para logs do Apache POI -->
         <dependency>
             <groupId>org.apache.logging.log4j</groupId>
             <artifactId>log4j-core</artifactId>
@@ -57,7 +57,7 @@
             <version>2.21.1</version>
         </dependency>
 
-                <!-- JavaFX para interface gráfica -->
+        <!-- JavaFX para interface gráfica -->
         <dependency>
             <groupId>org.openjfx</groupId>
             <artifactId>javafx-controls</artifactId>
@@ -81,8 +81,8 @@
                     <target>21</target>
                 </configuration>
             </plugin>
-            
-            <!-- Plugin para executar classes Java -->
+
+            <!-- Plugin para executar classes Java (console) -->
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
@@ -92,7 +92,8 @@
                 </configuration>
             </plugin>
 
-                        <plugin>
+            <!-- Plugin para executar JavaFX (interface gráfica) -->
+            <plugin>
                 <groupId>org.openjfx</groupId>
                 <artifactId>javafx-maven-plugin</artifactId>
                 <version>0.0.8</version>
@@ -101,7 +102,7 @@
                 </configuration>
             </plugin>
 
-                        <!-- Plugin para criar JAR executável com todas as dependências -->
+            <!-- Plugin para criar JAR executável com todas as dependências (Fat JAR) -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
@@ -118,6 +119,16 @@
                                     <mainClass>br.com.projeto.comparador.interfaceApp</mainClass>
                                 </transformer>
                             </transformers>
+                            <filters>
+                                <filter>
+                                    <artifact>*:*</artifact>
+                                    <excludes>
+                                        <exclude>module-info.class</exclude>
+                                    </excludes>
+                                </filter>
+                            </filters>
+                            <!-- Evita que o shade-plugin gere um POM reduzido (opcional) -->
+                            <createDependencyReducedPom>false</createDependencyReducedPom>
                         </configuration>
                     </execution>
                 </executions>

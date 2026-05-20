@@ -1,0 +1,12 @@
+br\com\projeto\comparador\comparadorPlanilhas$ConfiguracaoComparacao.class
+br\com\projeto\comparador\util\normalizacao.class
+br\com\projeto\comparador\interfaceApp.class
+br\com\projeto\comparador\service\AuthService.class
+br\com\projeto\comparador\geradorRelatorioExcel.class
+br\com\projeto\comparador\util\geradorHash.class
+br\com\projeto\comparador\comparadorPlanilhas$ResultadoComparacao.class
+br\com\projeto\comparador\comparadorPlanilhas$Divergencia.class
+br\com\projeto\comparador\reader\leitorPlanilha$1.class
+br\com\projeto\comparador\model\registroPlanilha.class
+br\com\projeto\comparador\comparadorPlanilhas.class
+br\com\projeto\comparador\reader\leitorPlanilha.class

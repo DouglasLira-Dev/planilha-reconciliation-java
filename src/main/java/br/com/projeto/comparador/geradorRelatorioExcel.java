@@ -136,8 +136,8 @@ public class geradorRelatorioExcel {
         // Informações da comparação
         addInfoRow(sheet, rowNum++, "Data/Hora da geração:", 
             LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
-        addInfoRow(sheet, rowNum++, "Planilha Financeiro:", caminhoFinanceiro);
-        addInfoRow(sheet, rowNum++, "Planilha Cadastro:", caminhoCadastro);
+        addInfoRow(sheet, rowNum++, "Planilha da Prévia:", caminhoFinanceiro);
+        addInfoRow(sheet, rowNum++, "Planilha de Cadastro:", caminhoCadastro);
         addInfoRow(sheet, rowNum++, "Chave de comparação:", "CPF + Matrícula");
         addInfoRow(sheet, rowNum++, "Limiar similaridade de nomes:", 
             resultado.getConfiguracao().getLimiarSimilaridadeNomes() + "%");
@@ -148,14 +148,14 @@ public class geradorRelatorioExcel {
         // Estatísticas
         addInfoRow(sheet, rowNum++, "📊 ESTATÍSTICAS DA COMPARAÇÃO", "");
         addInfoRow(sheet, rowNum++, "", "");
-        addInfoRow(sheet, rowNum++, "Total de registros do Financeiro:", String.valueOf(totalFinanceiro));
-        addInfoRow(sheet, rowNum++, "Total de registros do Cadastro:", String.valueOf(totalCadastro));
+        addInfoRow(sheet, rowNum++, "Total de Registros da Prévia:", String.valueOf(totalFinanceiro));
+        addInfoRow(sheet, rowNum++, "Total de Registros do Cadastro:", String.valueOf(totalCadastro));
         addInfoRow(sheet, rowNum++, "", "");
         addInfoRow(sheet, rowNum++, "✅ Registros conformes (idênticos):", 
             String.valueOf(resultado.getTotalConformes()));
-        addInfoRow(sheet, rowNum++, "❌ Registros que se encontram apenas no financeiro:", 
+        addInfoRow(sheet, rowNum++, "❌ Registros que se encontram apenas na Prévia:", 
             String.valueOf(resultado.getTotalFaltantes()));
-        addInfoRow(sheet, rowNum++, "⚠️ Registros que não estão no financeiro:", 
+        addInfoRow(sheet, rowNum++, "⚠️ Registros que não estão na Prévia:", 
             String.valueOf(resultado.getTotalExcedentes()));
         addInfoRow(sheet, rowNum++, "🔄 Registros com divergências:", 
             String.valueOf(resultado.getTotalDivergencias()));
@@ -186,19 +186,19 @@ public class geradorRelatorioExcel {
     }
     
     private void criarAbaFaltantes(Workbook workbook, comparadorPlanilhas.ResultadoComparacao resultado) {
-        Sheet sheet = workbook.createSheet("02 - Registros que se encontram apenas no financeiro");
+        Sheet sheet = workbook.createSheet("02 - Registros que se encontram apenas na prévia");
         int rowNum = 0;
         
         Row titleRow = sheet.createRow(rowNum++);
         Cell titleCell = titleRow.createCell(0);
-        titleCell.setCellValue("REGISTROS QUE SE ENCONTRAM APENAS NO FINANCEIRO (FALTANTES NO CADASTRO)");
+        titleCell.setCellValue("REGISTROS QUE SE ENCONTRAM APENAS NA PRÉVIA (não estão na planilha de cadastro)");
         titleCell.setCellStyle(estiloTitulo);
         
         rowNum++;
         
         if (resultado.getTotalFaltantes() == 0) {
             Row emptyRow = sheet.createRow(rowNum);
-            emptyRow.createCell(0).setCellValue("Nenhum registro faltante encontrado.");
+            emptyRow.createCell(0).setCellValue("Nenhum registro inconsistente encontrado.");
             return;
         }
         
@@ -230,19 +230,19 @@ public class geradorRelatorioExcel {
     }
     
     private void criarAbaExcedentes(Workbook workbook, comparadorPlanilhas.ResultadoComparacao resultado) {
-        Sheet sheet = workbook.createSheet("03 - Registros que não estão no financeiro (FALTAM CADASTRAR)");
+        Sheet sheet = workbook.createSheet("03 - Registros que não estão na prévia");
         int rowNum = 0;
         
         Row titleRow = sheet.createRow(rowNum++);
         Cell titleCell = titleRow.createCell(0);
-        titleCell.setCellValue("REGISTROS QUE NÃO ESTÃO NO FINANCEIRO (FALTAM CADASTRAR)");
+        titleCell.setCellValue("REGISTROS QUE NÃO ESTÃO NA PRÉVIA (FALTAM CADASTRAR)");
         titleCell.setCellStyle(estiloTitulo);
         
         rowNum++;
         
         if (resultado.getTotalExcedentes() == 0) {
             Row emptyRow = sheet.createRow(rowNum);
-            emptyRow.createCell(0).setCellValue("Nenhum registro excedente encontrado.");
+            emptyRow.createCell(0).setCellValue("Nenhum registro inconsistente encontrado.");
             return;
         }
         

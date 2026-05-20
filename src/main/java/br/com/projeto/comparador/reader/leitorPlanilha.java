@@ -46,15 +46,15 @@ public class leitorPlanilha {
             }
             
             // Mapeia os índices usando sinônimos
-            int idxMatricula = obterIndice(colunaIndex, "matricula", "matrícula", "numero", "id", "contrato", "registro");
+            int idxMatricula = obterIndice(colunaIndex, "matricula", "matrícula", "numero", "prontuario", "contrato", "registro");
             int idxCpf = obterIndice(colunaIndex, "cpf", "cpfcnpj", "documento", "cpfcnpj");
-            int idxNome = obterIndice(colunaIndex, "nome", "nomestagiario", "estagiario", "nomeestagiario");
-            int idxNivel = obterIndice(colunaIndex, "nivel", "nivelestagio", "grau", "escolaridade", "nivelestagio");
-            int idxDataInicio = obterIndice(colunaIndex, "datainicio", "iniciocontrato", "data_inicio", "inicio", "dtinicio");
-            int idxDataFim = obterIndice(colunaIndex, "datafim", "fimcontrato", "data_fim", "fim", "dtfim");
-            int idxBanco = obterIndice(colunaIndex, "banco", "codigobanco", "bancocodigo");
+            int idxNome = obterIndice(colunaIndex, "nome", "nomestagiario", "estagiario", "nomeestagiario", "nome abreviado", "nomeabreviado");
+            int idxNivel = obterIndice(colunaIndex, "nivel","nível", "nivelestagio", "grau", "escolaridade", "nivelestagio", "estagio");
+            int idxDataInicio = obterIndice(colunaIndex, "datainicio", "iniciocontrato", "data_inicio", "inicio", "dtinicio", "dt admissao", "dtadmissao", "teie");
+            int idxDataFim = obterIndice(colunaIndex, "datafim", "fimcontrato", "data_fim", "fim", "dtfim","dt fim cont.", "dtfimcont.", "dt_prevtermino", "dtprevtermino");
+            int idxBanco = obterIndice(colunaIndex, "banco", "codigobanco", "bancocodigo", "bco", "cod_banco", "codbanco");
             int idxAgencia = obterIndice(colunaIndex, "agencia", "agenciabanco", "nr_agencia");
-            int idxConta = obterIndice(colunaIndex, "conta", "contacorrente", "numeroconta", "nr_conta");
+            int idxConta = obterIndice(colunaIndex, "conta", "contacorrente", "numeroconta", "nr_conta", "c.corrente", "ccorrente");
             
             System.out.println("Índices mapeados:");
             System.out.println("  Matrícula: " + idxMatricula);
@@ -118,6 +118,13 @@ public class leitorPlanilha {
                 registro.setBancoNorm(normalizacao.normalizarBanco(registro.getBanco()));
                 registro.setAgenciaNorm(normalizacao.normalizarAgencia(registro.getAgencia()));
                 registro.setContaNorm(normalizacao.normalizarConta(registro.getConta()));
+                
+                // ========== IGNORAR LINHAS SEM CPF OU MATRÍCULA ==========
+                if (registro.getMatriculaNorm().isEmpty() || registro.getCpfNorm().isEmpty()) {
+                    System.out.println("  Linha ignorada: matrícula ou CPF vazio. Matrícula='" + registro.getMatricula() + "', CPF='" + registro.getCpf() + "'");
+                    continue; // não adiciona à lista
+                }
+                // =======================================================
                 
                 lista.add(registro);
             }
