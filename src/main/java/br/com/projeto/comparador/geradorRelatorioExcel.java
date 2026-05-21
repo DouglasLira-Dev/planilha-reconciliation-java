@@ -53,13 +53,15 @@ public class geradorRelatorioExcel {
             
             // Criar abas
             criarAbaResumo(workbook, resultado, caminhoFinanceiro, caminhoCadastro, totalFinanceiro, totalCadastro);
+            criarAbaConformes(workbook, resultado);
             criarAbaFaltantes(workbook, resultado);
             criarAbaExcedentes(workbook, resultado);
             criarAbaDivergencias(workbook, resultado);
             criarAbaConflitos(workbook, resultado);
             criarAbaPossiveisAbreviacoes(workbook, resultado);
-            criarAbaCancelados(workbook, resultado);            // <-- NOVA ABA ADICIONADA
+            criarAbaCancelados(workbook, resultado);            
             criarAbaDetalhado(workbook, resultado);
+                          
             
             // Salvar arquivo
             try (FileOutputStream fileOut = new FileOutputStream(arquivoSaida)) {
@@ -186,7 +188,7 @@ public class geradorRelatorioExcel {
     }
     
     private void criarAbaFaltantes(Workbook workbook, comparadorPlanilhas.ResultadoComparacao resultado) {
-        Sheet sheet = workbook.createSheet("02 - Registros que se encontram apenas na prévia");
+        Sheet sheet = workbook.createSheet("03 - Registros que se encontram apenas na prévia");
         int rowNum = 0;
         
         Row titleRow = sheet.createRow(rowNum++);
@@ -228,9 +230,52 @@ public class geradorRelatorioExcel {
             sheet.setColumnWidth(i, 5000);
         }
     }
+    private void criarAbaConformes(Workbook workbook, comparadorPlanilhas.ResultadoComparacao resultado) {
+        Sheet sheet = workbook.createSheet("02 - Registros Conformes");
+        int rowNum = 0;
+
+        Row titleRow = sheet.createRow(rowNum++);
+        Cell titleCell = titleRow.createCell(0);
+        titleCell.setCellValue("REGISTROS CONFORMES (IDÊNTICOS NAS DUAS PLANILHAS)");
+        titleCell.setCellStyle(estiloTitulo);
+
+        rowNum++;
+
+        if (resultado.getConformes().isEmpty()) {
+            Row emptyRow = sheet.createRow(rowNum);
+            emptyRow.createCell(0).setCellValue("Nenhum registro conforme encontrado.");
+            return;
+        }
+
+        String[] headers = {"Matrícula", "CPF", "Nome", "Nível Estágio", "Data Início", 
+                            "Data Fim", "Banco", "Agência", "Conta"};
+        Row headerRow = sheet.createRow(rowNum++);
+        for (int i = 0; i < headers.length; i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(estiloCabecalho);
+        }
+
+        for (var reg : resultado.getConformes()) {
+            Row row = sheet.createRow(rowNum++);
+            row.createCell(0).setCellValue(reg.getMatricula());
+            row.createCell(1).setCellValue(reg.getCpf());
+            row.createCell(2).setCellValue(reg.getNome());
+            row.createCell(3).setCellValue(reg.getNivelEstagio());
+            row.createCell(4).setCellValue(reg.getDataInicioStr());
+            row.createCell(5).setCellValue(reg.getDataFimStr());
+            row.createCell(6).setCellValue(reg.getBanco());
+            row.createCell(7).setCellValue(reg.getAgencia());
+            row.createCell(8).setCellValue(reg.getConta());
+        }
+
+        for (int i = 0; i < headers.length; i++) {
+            sheet.setColumnWidth(i, 5000);
+        }
+    }
     
     private void criarAbaExcedentes(Workbook workbook, comparadorPlanilhas.ResultadoComparacao resultado) {
-        Sheet sheet = workbook.createSheet("03 - Registros que não estão na prévia");
+        Sheet sheet = workbook.createSheet("04 - Registros que não estão na prévia");
         int rowNum = 0;
         
         Row titleRow = sheet.createRow(rowNum++);
@@ -274,7 +319,7 @@ public class geradorRelatorioExcel {
     }
     
     private void criarAbaDivergencias(Workbook workbook, comparadorPlanilhas.ResultadoComparacao resultado) {
-        Sheet sheet = workbook.createSheet("04 - Divergências");
+        Sheet sheet = workbook.createSheet("05 - Divergências");
         int rowNum = 0;
         
         Row titleRow = sheet.createRow(rowNum++);
@@ -332,7 +377,7 @@ public class geradorRelatorioExcel {
     }
     
     private void criarAbaConflitos(Workbook workbook, comparadorPlanilhas.ResultadoComparacao resultado) {
-        Sheet sheet = workbook.createSheet("05 - Conflitos CPF e Matricula");
+        Sheet sheet = workbook.createSheet("06 - Conflitos CPF e Matricula");
         int rowNum = 0;
         
         Row titleRow = sheet.createRow(rowNum++);
@@ -385,7 +430,7 @@ public class geradorRelatorioExcel {
     }
 
     private void criarAbaPossiveisAbreviacoes(Workbook workbook, comparadorPlanilhas.ResultadoComparacao resultado) {
-        Sheet sheet = workbook.createSheet("06 - Possíveis Abreviações");
+        Sheet sheet = workbook.createSheet("07 - Possíveis Abreviações");
         int rowNum = 0;
 
         Row titleRow = sheet.createRow(rowNum++);
@@ -451,7 +496,7 @@ public class geradorRelatorioExcel {
     }
     
     private void criarAbaCancelados(Workbook workbook, comparadorPlanilhas.ResultadoComparacao resultado) {
-        Sheet sheet = workbook.createSheet("07 - Cancelados no Cadastro");
+        Sheet sheet = workbook.createSheet("08 - Cancelados no Cadastro");
         int rowNum = 0;
     
         Row titleRow = sheet.createRow(rowNum++);
@@ -506,7 +551,7 @@ public class geradorRelatorioExcel {
     }  
     
     private void criarAbaDetalhado(Workbook workbook, comparadorPlanilhas.ResultadoComparacao resultado) {
-        Sheet sheet = workbook.createSheet("08 - Comparação Detalhada");
+        Sheet sheet = workbook.createSheet("09 - Comparação Detalhada");
         int rowNum = 0;
         
         Row titleRow = sheet.createRow(rowNum++);

@@ -115,6 +115,7 @@ public class comparadorPlanilhas {
     public static class ResultadoComparacao {
         private List<registroPlanilha> faltantesNoCadastro;
         private List<registroPlanilha> excedentesNoCadastro;
+        private List<registroPlanilha> conformes;
         private Map<String, List<Divergencia>> divergenciasPorChave;
         private List<registroPlanilha> conflitosCPFMatricula;
         private int totalConformes;
@@ -124,6 +125,7 @@ public class comparadorPlanilhas {
         public ResultadoComparacao() {
             this.faltantesNoCadastro = new ArrayList<>();
             this.excedentesNoCadastro = new ArrayList<>();
+            this.conformes = new ArrayList<>();
             this.divergenciasPorChave = new HashMap<>();
             this.conflitosCPFMatricula = new ArrayList<>();
             this.totalConformes = 0;
@@ -137,13 +139,15 @@ public class comparadorPlanilhas {
         public List<registroPlanilha> getCanceladosNoCadastro() { return canceladosNoCadastro; }
         public Map<String, List<Divergencia>> getDivergenciasPorChave() { return divergenciasPorChave; }
         public List<registroPlanilha> getConflitosCPFMatricula() { return conflitosCPFMatricula; }
-        public int getTotalConformes() { return totalConformes; }
+        public List<registroPlanilha> getConformes() { return conformes; }
         public ConfiguracaoComparacao getConfiguracao() { return configuracao; }
         
+        public void addConforme(registroPlanilha reg) { this.conformes.add(reg); }
         public void setTotalConformes(int totalConformes) { this.totalConformes = totalConformes; }
         public void setConfiguracao(ConfiguracaoComparacao configuracao) { this.configuracao = configuracao; }
         
         public int getTotalFaltantes() { return faltantesNoCadastro.size(); }
+        public int getTotalConformes() { return conformes.size(); }
         public int getTotalExcedentes() { return excedentesNoCadastro.size(); }
         public int getTotalCancelados() { return canceladosNoCadastro.size(); }
         public int getTotalDivergencias() { return divergenciasPorChave.size(); }
@@ -361,7 +365,7 @@ public class comparadorPlanilhas {
                         resultado.addDivergencia(chave, div);
                     }
                 } else {
-                    resultado.setTotalConformes(resultado.getTotalConformes() + 1);
+                    resultado.addConforme(regFin);   // <-- ALTERAÇÃO PRINCIPAL
                 }
             }
         }
