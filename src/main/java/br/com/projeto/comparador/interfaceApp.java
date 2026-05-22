@@ -38,7 +38,7 @@ public class interfaceApp extends Application {
     private ProgressIndicator progressIndicator;
     private String usuarioLogado;
     
-    // Novos controles para seleção de abas
+    // Controles para seleção de abas
     private ListView<String> listViewAbas;
     private Label lblAbas;
     
@@ -109,37 +109,30 @@ public class interfaceApp extends Application {
         VBox centerBox = new VBox(15);
         centerBox.setPadding(new Insets(20));
         
-        // Planilha Financeiro
+        // Financeiro
         VBox boxFinanceiro = criarBoxPlanilha("📊 Planilha do FINANCEIRO:", campoFinanceiro = new TextField());
-        
-        // Planilha Cadastro (com botão especial)
-        VBox boxCadastro = criarBoxPlanilha("📋 Planilha do CADASTRO:", campoCadastro = new TextField());
-        // Substituir o botão de busca do cadastro por um que também carrega abas
-        // Vamos recriar a linha do cadastro com um botão personalizado
-        // Como a função criarBoxPlanilha é genérica, vou modificar depois da criação
-        // Por simplicidade, vou refazer a seção de cadastro manualmente.
-        
-        // Remover o boxCadastro criado genericamente e criar um específico
-        centerBox.getChildren().clear(); // recomeçar
         centerBox.getChildren().add(boxFinanceiro);
         
-        // Criar seção de cadastro com botão personalizado
+        // Cadastro (com botão personalizado)
         VBox boxCadastroCustom = new VBox(5);
         boxCadastroCustom.setPadding(new Insets(10));
         boxCadastroCustom.setStyle("-fx-border-color: #bdc3c7; -fx-border-radius: 5; -fx-background-color: #f8f9fa; -fx-border-radius: 5;");
         Label labelCadastro = new Label("📋 Planilha do CADASTRO:");
         labelCadastro.setFont(Font.font("Arial", FontWeight.BOLD, 12));
         HBox linhaCadastro = new HBox(10);
+
+        campoCadastro = new TextField();  // Campo para exibir o caminho do arquivo selecionado
         campoCadastro.setPromptText("Caminho da planilha...");
         campoCadastro.setPrefWidth(500);
         campoCadastro.setEditable(false);
+
         Button btnBuscarCadastro = new Button("📂 Buscar");
         btnBuscarCadastro.setOnAction(e -> buscarArquivoCadastro());
         linhaCadastro.getChildren().addAll(campoCadastro, btnBuscarCadastro);
         boxCadastroCustom.getChildren().addAll(labelCadastro, linhaCadastro);
         centerBox.getChildren().add(boxCadastroCustom);
         
-        // Seção de seleção de abas
+        // Seleção de abas
         lblAbas = new Label("📑 Abas do cadastro (selecione uma ou mais):");
         lblAbas.setFont(Font.font("Arial", FontWeight.NORMAL, 12));
         listViewAbas = new ListView<>();
@@ -166,7 +159,7 @@ public class interfaceApp extends Application {
         buttonBox.setAlignment(Pos.CENTER);
         centerBox.getChildren().add(buttonBox);
         
-        // Área de resultado
+        // Resultado
         Label lblResultado = new Label("📄 RESULTADO DA COMPARAÇÃO");
         lblResultado.setFont(Font.font("Arial", FontWeight.BOLD, 14));
         lblResultado.setTextFill(Color.web("#27ae60"));
@@ -237,7 +230,6 @@ public class interfaceApp extends Application {
         File file = fileChooser.showOpenDialog(null);
         if (file != null) {
             campoCadastro.setText(file.getAbsolutePath());
-            // Carregar abas
             try {
                 List<String> abas = leitorPlanilha.listarNomesAbasDados(file.getAbsolutePath());
                 listViewAbas.getItems().setAll(abas);
@@ -275,30 +267,63 @@ public class interfaceApp extends Application {
                 List<registroPlanilha> financeiroOriginal = leitorPlanilha.ler(caminhoFinanceiro);
                 List<registroPlanilha> financeiroFiltrado = new ArrayList<>(financeiroOriginal);
 
-                // 2. Filtro por período (ainda com data mínima – depois expandiremos para intervalo)
+                // 2. Filtro por intervalo (data mínima e máxima)
                 final boolean[] aplicarFiltro = {false};
-                final String[] mesReferencia = {null};
+                final LocalDate[] dataMin = {null};
+                final LocalDate[] dataMax = {null};
                 final CountDownLatch latch = new CountDownLatch(1);
 
                 javafx.application.Platform.runLater(() -> {
                     Alert alertFiltro = new Alert(Alert.AlertType.CONFIRMATION);
                     alertFiltro.setTitle("Filtrar por período");
-                    alertFiltro.setHeaderText("Deseja filtrar os registros do financeiro por uma data de início mínima?");
-                    alertFiltro.setContentText("Escolha 'Sim' para informar o mês/ano de referência.\nSerão mantidos apenas contratos com data início ≥ referência.");
+                    alertFiltro.setHeaderText("Deseja filtrar os registros do financeiro por um intervalo de datas de início?");
+                    alertFiltro.setContentText("Escolha 'Sim' para informar o período.");
                     ButtonType btnSim = new ButtonType("Sim");
                     ButtonType btnNao = new ButtonType("Não");
                     alertFiltro.getButtonTypes().setAll(btnSim, btnNao);
 
                     Optional<ButtonType> resultFiltro = alertFiltro.showAndWait();
                     if (resultFiltro.isPresent() && resultFiltro.get() == btnSim) {
-                        TextInputDialog inputMes = new TextInputDialog();
-                        inputMes.setTitle("Período desejado");
-                        inputMes.setHeaderText("Informe a data de referência (mês/ano)");
-                        inputMes.setContentText("Formato: MM/yyyy (ex: 05/2025)");
-                        Optional<String> resultMes = inputMes.showAndWait();
-                        if (resultMes.isPresent()) {
-                            aplicarFiltro[0] = true;
-                            mesReferencia[0] = resultMes.get();
+                        try {
+                            
+                            // Data mínima (obrigatória)
+                            TextInputDialog inputMesMin = new TextInputDialog();
+                            inputMesMin.setTitle("Data de início (mínima)");
+                            inputMesMin.setHeaderText("Informe o mês/ano de início (mínimo)");
+                            inputMesMin.setContentText("Formato: MM/yyyy (ex: 05/2025)");
+                            Optional<String> resultMin = inputMesMin.showAndWait();
+                            if (resultMin.isPresent()) {
+                                DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MM/yyyy");
+                                YearMonth yearMonthMin = YearMonth.parse(resultMin.get(), fmt);
+                                dataMin[0] = yearMonthMin.atDay(1);
+                                aplicarFiltro[0] = true;
+                            }
+
+                            // Data máxima (opcional)
+                            if (aplicarFiltro[0]) {
+                                Alert alertMax = new Alert(Alert.AlertType.CONFIRMATION);
+                                alertMax.setTitle("Data máxima");
+                                alertMax.setHeaderText("Deseja definir também uma data de início máxima?");
+                                alertMax.setContentText("Se não, será considerado apenas o limite mínimo.");
+                                ButtonType btnSimMax = new ButtonType("Sim");
+                                ButtonType btnNaoMax = new ButtonType("Não");
+                                alertMax.getButtonTypes().setAll(btnSimMax, btnNaoMax);
+                                Optional<ButtonType> resultMax = alertMax.showAndWait();
+                                if (resultMax.isPresent() && resultMax.get() == btnSimMax) {
+                                    DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MM/yyyy");
+                                    TextInputDialog inputMesMax = new TextInputDialog();
+                                    inputMesMax.setTitle("Data de início (máxima)");
+                                    inputMesMax.setHeaderText("Informe o mês/ano de início (máximo)");
+                                    inputMesMax.setContentText("Formato: MM/yyyy (ex: 12/2025)");
+                                    Optional<String> resultMesMax = inputMesMax.showAndWait();
+                                    if (resultMesMax.isPresent()) {
+                                        YearMonth yearMonthMax = YearMonth.parse(resultMesMax.get(), fmt);
+                                        dataMax[0] = yearMonthMax.atEndOfMonth();
+                                    }
+                                }
+                            }
+                        } catch (Exception e) {
+                            System.out.println("Formato inválido. Nenhum filtro aplicado.");
                         }
                     }
                     latch.countDown();
@@ -306,21 +331,19 @@ public class interfaceApp extends Application {
 
                 latch.await();
 
-                if (aplicarFiltro[0] && mesReferencia[0] != null) {
-                    try {
-                        DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MM/yyyy");
-                        YearMonth yearMonth = YearMonth.parse(mesReferencia[0], fmt);
-                        LocalDate dataReferencia = yearMonth.atDay(1);
-                        int totalAntes = financeiroFiltrado.size();
-                        financeiroFiltrado = filtrarPorPeriodo(financeiroFiltrado, dataReferencia);
-                        System.out.println("Financeiro filtrado: " + financeiroFiltrado.size() + " registros (início >= " + mesReferencia[0] + "). " +
-                                           (totalAntes - financeiroFiltrado.size()) + " registros descartados.");
-                        javafx.application.Platform.runLater(() -> {
-                            areaResultado.setText("📅 Filtro aplicado: início do contrato ≥ " + mesReferencia[0] + "\n" + areaResultado.getText());
-                        });
-                    } catch (Exception e) {
-                        System.out.println("Formato inválido. Nenhum filtro aplicado.");
+                if (aplicarFiltro[0] && dataMin[0] != null) {
+                    int totalAntes = financeiroFiltrado.size();
+                    financeiroFiltrado = filtrarPorIntervalo(financeiroFiltrado, dataMin[0], dataMax[0]);
+                    String msg = "Financeiro filtrado: " + financeiroFiltrado.size() + " registros (início >= " + dataMin[0];
+                    if (dataMax[0] != null) {
+                        msg += " e <= " + dataMax[0];
                     }
+                    msg += "). " + (totalAntes - financeiroFiltrado.size()) + " registros descartados.";
+                    System.out.println(msg);
+                    final String finalMsg = msg;
+                    javafx.application.Platform.runLater(() -> {
+                        areaResultado.setText("📅 Filtro aplicado: " + finalMsg + "\n" + areaResultado.getText());
+                    });
                 }
 
                 // 3. Ler cadastro usando as abas selecionadas
@@ -377,13 +400,14 @@ public class interfaceApp extends Application {
         thread.start();
     }
     
-    private List<registroPlanilha> filtrarPorPeriodo(List<registroPlanilha> registros, LocalDate dataReferencia) {
+    private List<registroPlanilha> filtrarPorIntervalo(List<registroPlanilha> registros, LocalDate dataMin, LocalDate dataMax) {
         List<registroPlanilha> filtrados = new ArrayList<>();
         for (registroPlanilha reg : registros) {
-            LocalDate inicioContrato = reg.getDataInicio();
-            if (inicioContrato != null && !inicioContrato.isBefore(dataReferencia)) {
-                filtrados.add(reg);
-            }
+            LocalDate inicio = reg.getDataInicio();
+            if (inicio == null) continue;
+            if (inicio.isBefore(dataMin)) continue;
+            if (dataMax != null && inicio.isAfter(dataMax)) continue;
+            filtrados.add(reg);
         }
         return filtrados;
     }
