@@ -157,27 +157,28 @@ A pasta `ComparadorEstagios` será criada com o `.exe`. Compacte‑a para distri
 
 ## 📁 Estrutura do projeto
 
+```text
 comparador-planilhas-estagios/
 ├── src/
 │   ├── main/
 │   │   ├── java/br/com/projeto/comparador/
-│   │   │   ├── interfaceApp.java       # Interface gráfica (JavaFX)
-│   │   │   ├── app.java                # Versão console (legado)
-│   │   │   ├── comparadorPlanilhas.java # Lógica de comparação
-│   │   │   ├── geradorRelatorioExcel.java # Geração do Excel
+│   │   │   ├── interfaceApp.java
+│   │   │   ├── app.java
+│   │   │   ├── comparadorPlanilhas.java
+│   │   │   ├── geradorRelatorioExcel.java
 │   │   │   ├── model/
-│   │   │   │   └── registroPlanilha.java # Modelo de dados
+│   │   │   │   └── registroPlanilha.java
 │   │   │   ├── reader/
-│   │   │   │   └── leitorPlanilha.java   # Leitura de Excel
+│   │   │   │   └── leitorPlanilha.java
 │   │   │   ├── util/
-│   │   │   │   └── normalizacao.java     # Funções de normalização
+│   │   │   │   └── normalizacao.java
 │   │   │   ├── service/
-│   │   │   │   └── AuthService.java      # Autenticação de usuários
-│   │   │   └── database/                 # (opcional) Histórico SQLite
+│   │   │   │   └── AuthService.java
+│   │   │   └── database/
 │   │   └── resources/
-│   │       └── usuarios.properties       # Credenciais (login=hash)
-│   └── test/                             # (não implementado)
-├── pom.xml                               # Configuração Maven
+│   │       └── usuarios.properties
+│   └── test/
+├── pom.xml
 ├── .gitignore
 └── README.md
 
