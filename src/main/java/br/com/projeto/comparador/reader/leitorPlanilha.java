@@ -134,7 +134,8 @@ public class leitorPlanilha {
         int idxMatricula = obterIndice(colunaIndex, "matricula", "matrícula", "numero", "prontuario", "contrato", "registro");
         int idxCpf = obterIndice(colunaIndex, "cpf", "cpfcnpj", "documento");
         int idxNome = obterIndice(colunaIndex, "nome", "nomestagiario", "estagiario", "nomeestagiario", "nome abreviado", "nomeabreviado");
-        int idxNivel = obterIndice(colunaIndex, "nivel", "nivelestagio", "grau", "escolaridade", "estagio");
+        int idxNivel = obterIndice(colunaIndex,  "nivel", "nivelestagio", "grau", "escolaridade", "estagio",
+    "niveldeestagio", "nivel_estagio", "nivel-estagio", "niveldoestagio", "estagionivel", "nvel");
         int idxDataInicio = obterIndice(colunaIndex, "datainicio", "iniciocontrato", "data_inicio", "inicio", "dtinicio", "dt admissao", "dtadmissao", "teie");
         int idxDataFim = obterIndice(colunaIndex, "datafim", "fimcontrato", "data_fim", "fim", "dtfim","dt fim cont.", "dtfimcont.", "dt_prevtermino", "dtprevtermino");
         int idxBanco = obterIndice(colunaIndex, "banco", "codigobanco", "bancocodigo", "bco", "cod_banco", "codbanco");
