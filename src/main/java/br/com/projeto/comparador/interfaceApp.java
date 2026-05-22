@@ -4,6 +4,7 @@ import javafx.application.Application;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
 import javafx.scene.Scene;
+import javafx.scene.chart.PieChart;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
@@ -38,9 +39,9 @@ public class interfaceApp extends Application {
     private ProgressIndicator progressIndicator;
     private String usuarioLogado;
     
-    // Controles para seleção de abas
     private ListView<String> listViewAbas;
     private Label lblAbas;
+    private Tab tabGraficos;   // nova aba para gráficos
     
     @Override
     public void start(Stage primaryStage) {
@@ -120,12 +121,10 @@ public class interfaceApp extends Application {
         Label labelCadastro = new Label("📋 Planilha do CADASTRO:");
         labelCadastro.setFont(Font.font("Arial", FontWeight.BOLD, 12));
         HBox linhaCadastro = new HBox(10);
-
-        campoCadastro = new TextField();  // Campo para exibir o caminho do arquivo selecionado
+        campoCadastro = new TextField();
         campoCadastro.setPromptText("Caminho da planilha...");
         campoCadastro.setPrefWidth(500);
         campoCadastro.setEditable(false);
-
         Button btnBuscarCadastro = new Button("📂 Buscar");
         btnBuscarCadastro.setOnAction(e -> buscarArquivoCadastro());
         linhaCadastro.getChildren().addAll(campoCadastro, btnBuscarCadastro);
@@ -159,18 +158,27 @@ public class interfaceApp extends Application {
         buttonBox.setAlignment(Pos.CENTER);
         centerBox.getChildren().add(buttonBox);
         
-        // Resultado
-        Label lblResultado = new Label("📄 RESULTADO DA COMPARAÇÃO");
-        lblResultado.setFont(Font.font("Arial", FontWeight.BOLD, 14));
-        lblResultado.setTextFill(Color.web("#27ae60"));
+        // Abas de resultado (textual + gráfico)
+        TabPane tabPaneResultados = new TabPane();
+        tabPaneResultados.setPrefHeight(350);
         
+        Tab tabTexto = new Tab("📄 Resumo Textual");
         areaResultado = new TextArea();
         areaResultado.setEditable(false);
         areaResultado.setStyle("-fx-font-family: 'Consolas'; -fx-font-size: 12px;");
         areaResultado.setPrefHeight(300);
+        tabTexto.setContent(areaResultado);
         
-        VBox resultadoBox = new VBox(10, lblResultado, areaResultado);
-        centerBox.getChildren().add(resultadoBox);
+        tabGraficos = new Tab("📊 Gráficos");
+        VBox vboxGraficos = new VBox();
+        vboxGraficos.setAlignment(Pos.CENTER);
+        vboxGraficos.setSpacing(10);
+        Label lblInfo = new Label("Os gráficos serão exibidos após a comparação.");
+        vboxGraficos.getChildren().add(lblInfo);
+        tabGraficos.setContent(vboxGraficos);
+        
+        tabPaneResultados.getTabs().addAll(tabTexto, tabGraficos);
+        centerBox.getChildren().add(tabPaneResultados);
         
         root.setCenter(centerBox);
         
@@ -285,6 +293,7 @@ public class interfaceApp extends Application {
                     Optional<ButtonType> resultFiltro = alertFiltro.showAndWait();
                     if (resultFiltro.isPresent() && resultFiltro.get() == btnSim) {
                         try {
+                            DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MM/yyyy");
                             
                             // Data mínima (obrigatória)
                             TextInputDialog inputMesMin = new TextInputDialog();
@@ -293,7 +302,6 @@ public class interfaceApp extends Application {
                             inputMesMin.setContentText("Formato: MM/yyyy (ex: 05/2025)");
                             Optional<String> resultMin = inputMesMin.showAndWait();
                             if (resultMin.isPresent()) {
-                                DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MM/yyyy");
                                 YearMonth yearMonthMin = YearMonth.parse(resultMin.get(), fmt);
                                 dataMin[0] = yearMonthMin.atDay(1);
                                 aplicarFiltro[0] = true;
@@ -310,7 +318,6 @@ public class interfaceApp extends Application {
                                 alertMax.getButtonTypes().setAll(btnSimMax, btnNaoMax);
                                 Optional<ButtonType> resultMax = alertMax.showAndWait();
                                 if (resultMax.isPresent() && resultMax.get() == btnSimMax) {
-                                    DateTimeFormatter fmt = DateTimeFormatter.ofPattern("MM/yyyy");
                                     TextInputDialog inputMesMax = new TextInputDialog();
                                     inputMesMax.setTitle("Data de início (máxima)");
                                     inputMesMax.setHeaderText("Informe o mês/ano de início (máximo)");
@@ -372,8 +379,10 @@ public class interfaceApp extends Application {
                 int totalCad = cadastro.size();
                 String resultadoTexto = gerarTextoResultado(resultado, totalFin, totalCad);
 
+                // Atualizar interface
                 javafx.application.Platform.runLater(() -> {
                     areaResultado.setText(resultadoTexto);
+                    atualizarGraficoPizza(resultado);   // atualiza o gráfico
                     btnComparar.setDisable(false);
                     progressIndicator.setVisible(false);
 
@@ -410,6 +419,30 @@ public class interfaceApp extends Application {
             filtrados.add(reg);
         }
         return filtrados;
+    }
+    
+    private void atualizarGraficoPizza(comparadorPlanilhas.ResultadoComparacao resultado) {
+        PieChart pieChart = new PieChart();
+        pieChart.setTitle("Distribuição da Comparação");
+        pieChart.setLabelsVisible(true);
+        pieChart.setLegendVisible(true);
+        
+        // Adiciona dados (somente se > 0)
+        if (resultado.getTotalConformes() > 0)
+            pieChart.getData().add(new PieChart.Data("Conformes", resultado.getTotalConformes()));
+        if (resultado.getTotalFaltantes() > 0)
+            pieChart.getData().add(new PieChart.Data("Faltantes", resultado.getTotalFaltantes()));
+        if (resultado.getTotalExcedentes() > 0)
+            pieChart.getData().add(new PieChart.Data("Excedentes", resultado.getTotalExcedentes()));
+        if (resultado.getTotalDivergencias() > 0)
+            pieChart.getData().add(new PieChart.Data("Divergências", resultado.getTotalDivergencias()));
+        if (resultado.getTotalCancelados() > 0)
+            pieChart.getData().add(new PieChart.Data("Cancelados", resultado.getTotalCancelados()));
+        
+        VBox vbox = new VBox(pieChart);
+        vbox.setAlignment(Pos.CENTER);
+        vbox.setSpacing(10);
+        tabGraficos.setContent(vbox);
     }
     
     private String gerarTextoResultado(comparadorPlanilhas.ResultadoComparacao resultado, int totalFin, int totalCad) {
