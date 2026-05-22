@@ -159,24 +159,27 @@ A pasta `ComparadorEstagios` será criada com o `.exe`. Compacte‑a para distri
 
 comparador-planilhas-estagios/
 ├── src/
-│ ├── main/
-│ │ ├── java/br/com/projeto/comparador/
-│ │ │ ├── interfaceApp.java # Interface gráfica (JavaFX)
-│ │ │ ├── app.java # Versão console (legado)
-│ │ │ ├── comparadorPlanilhas.java # Lógica de comparação
-│ │ │ ├── geradorRelatorioExcel.java # Geração do Excel
-│ │ │ ├── model/registroPlanilha.java# Modelo de dados
-│ │ │ ├── reader/leitorPlanilha.java # Leitura de Excel
-│ │ │ ├── util/normalizacao.java # Funções de normalização
-│ │ │ ├── service/AuthService.java # Autenticação de usuários
-│ │ │ └── database/ (opcional) # Histórico SQLite
-│ │ └── resources/
-│ │ └── usuarios.properties # Credenciais (login=hash)
-│ └── test/ (não implementado)
-├── pom.xml # Configuração Maven
+│   ├── main/
+│   │   ├── java/br/com/projeto/comparador/
+│   │   │   ├── interfaceApp.java       # Interface gráfica (JavaFX)
+│   │   │   ├── app.java                # Versão console (legado)
+│   │   │   ├── comparadorPlanilhas.java # Lógica de comparação
+│   │   │   ├── geradorRelatorioExcel.java # Geração do Excel
+│   │   │   ├── model/
+│   │   │   │   └── registroPlanilha.java # Modelo de dados
+│   │   │   ├── reader/
+│   │   │   │   └── leitorPlanilha.java   # Leitura de Excel
+│   │   │   ├── util/
+│   │   │   │   └── normalizacao.java     # Funções de normalização
+│   │   │   ├── service/
+│   │   │   │   └── AuthService.java      # Autenticação de usuários
+│   │   │   └── database/                 # (opcional) Histórico SQLite
+│   │   └── resources/
+│   │       └── usuarios.properties       # Credenciais (login=hash)
+│   └── test/                             # (não implementado)
+├── pom.xml                               # Configuração Maven
 ├── .gitignore
 └── README.md
-
 
 ---
 
