@@ -29,8 +29,6 @@ import br.com.projeto.comparador.reader.leitorPlanilha;
 import br.com.projeto.comparador.geradorRelatorioExcel;
 import br.com.projeto.comparador.service.AuthService;
 
-// NOTA: A classe LocalDatabaseManager foi removida (banco de dados local não será usado)
-
 public class interfaceApp extends Application {
     
     private TextField campoFinanceiro;
@@ -39,6 +37,10 @@ public class interfaceApp extends Application {
     private Button btnComparar;
     private ProgressIndicator progressIndicator;
     private String usuarioLogado;
+    
+    // Novos controles para seleção de abas
+    private ListView<String> listViewAbas;
+    private Label lblAbas;
     
     @Override
     public void start(Stage primaryStage) {
@@ -93,7 +95,7 @@ public class interfaceApp extends Application {
     private void iniciarTelaPrincipal(Stage primaryStage) {
         primaryStage.setTitle("Comparador de Planilhas - Estágios | Usuário: " + usuarioLogado);
         primaryStage.setMinWidth(800);
-        primaryStage.setMinHeight(600);
+        primaryStage.setMinHeight(750);
         
         BorderPane root = new BorderPane();
         root.setPadding(new Insets(10));
@@ -107,9 +109,50 @@ public class interfaceApp extends Application {
         VBox centerBox = new VBox(15);
         centerBox.setPadding(new Insets(20));
         
-        VBox boxFinanceiro = criarBoxPlanilha("📊 Planilha da Prévia:", campoFinanceiro = new TextField());
-        VBox boxCadastro = criarBoxPlanilha("📋 Planilha do CADASTRO:", campoCadastro = new TextField());
+        // Planilha Financeiro
+        VBox boxFinanceiro = criarBoxPlanilha("📊 Planilha do FINANCEIRO:", campoFinanceiro = new TextField());
         
+        // Planilha Cadastro (com botão especial)
+        VBox boxCadastro = criarBoxPlanilha("📋 Planilha do CADASTRO:", campoCadastro = new TextField());
+        // Substituir o botão de busca do cadastro por um que também carrega abas
+        // Vamos recriar a linha do cadastro com um botão personalizado
+        // Como a função criarBoxPlanilha é genérica, vou modificar depois da criação
+        // Por simplicidade, vou refazer a seção de cadastro manualmente.
+        
+        // Remover o boxCadastro criado genericamente e criar um específico
+        centerBox.getChildren().clear(); // recomeçar
+        centerBox.getChildren().add(boxFinanceiro);
+        
+        // Criar seção de cadastro com botão personalizado
+        VBox boxCadastroCustom = new VBox(5);
+        boxCadastroCustom.setPadding(new Insets(10));
+        boxCadastroCustom.setStyle("-fx-border-color: #bdc3c7; -fx-border-radius: 5; -fx-background-color: #f8f9fa; -fx-border-radius: 5;");
+        Label labelCadastro = new Label("📋 Planilha do CADASTRO:");
+        labelCadastro.setFont(Font.font("Arial", FontWeight.BOLD, 12));
+        HBox linhaCadastro = new HBox(10);
+        campoCadastro.setPromptText("Caminho da planilha...");
+        campoCadastro.setPrefWidth(500);
+        campoCadastro.setEditable(false);
+        Button btnBuscarCadastro = new Button("📂 Buscar");
+        btnBuscarCadastro.setOnAction(e -> buscarArquivoCadastro());
+        linhaCadastro.getChildren().addAll(campoCadastro, btnBuscarCadastro);
+        boxCadastroCustom.getChildren().addAll(labelCadastro, linhaCadastro);
+        centerBox.getChildren().add(boxCadastroCustom);
+        
+        // Seção de seleção de abas
+        lblAbas = new Label("📑 Abas do cadastro (selecione uma ou mais):");
+        lblAbas.setFont(Font.font("Arial", FontWeight.NORMAL, 12));
+        listViewAbas = new ListView<>();
+        listViewAbas.setPrefHeight(120);
+        listViewAbas.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        listViewAbas.setPlaceholder(new Label("Selecione a planilha de cadastro primeiro"));
+        listViewAbas.setDisable(true);
+        lblAbas.setDisable(true);
+        VBox boxAbas = new VBox(5, lblAbas, listViewAbas);
+        boxAbas.setPadding(new Insets(10));
+        centerBox.getChildren().add(boxAbas);
+        
+        // Botão Comparar
         btnComparar = new Button("🔍 COMPARAR PLANILHAS");
         btnComparar.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-size: 14px; -fx-font-weight: bold;");
         btnComparar.setPrefWidth(200);
@@ -121,7 +164,9 @@ public class interfaceApp extends Application {
         
         HBox buttonBox = new HBox(20, btnComparar, progressIndicator);
         buttonBox.setAlignment(Pos.CENTER);
+        centerBox.getChildren().add(buttonBox);
         
+        // Área de resultado
         Label lblResultado = new Label("📄 RESULTADO DA COMPARAÇÃO");
         lblResultado.setFont(Font.font("Arial", FontWeight.BOLD, 14));
         lblResultado.setTextFill(Color.web("#27ae60"));
@@ -132,8 +177,8 @@ public class interfaceApp extends Application {
         areaResultado.setPrefHeight(300);
         
         VBox resultadoBox = new VBox(10, lblResultado, areaResultado);
+        centerBox.getChildren().add(resultadoBox);
         
-        centerBox.getChildren().addAll(boxFinanceiro, boxCadastro, buttonBox, resultadoBox);
         root.setCenter(centerBox);
         
         Label footer = new Label("Desenvolvido para comparação de dados de estágios | CPF + Matrícula como chave");
@@ -161,7 +206,7 @@ public class interfaceApp extends Application {
         campo.setEditable(false);
         
         Button btnBuscar = new Button("📂 Buscar");
-        btnBuscar.setOnAction(e -> buscarArquivo(campo));
+        btnBuscar.setOnAction(e -> buscarArquivoFinanceiro(campo));
         
         linha.getChildren().addAll(campo, btnBuscar);
         box.getChildren().addAll(label, linha);
@@ -169,17 +214,45 @@ public class interfaceApp extends Application {
         return box;
     }
     
-    private void buscarArquivo(TextField campo) {
+    private void buscarArquivoFinanceiro(TextField campo) {
         FileChooser fileChooser = new FileChooser();
-        fileChooser.setTitle("Selecionar planilha");
+        fileChooser.setTitle("Selecionar planilha do financeiro");
         fileChooser.getExtensionFilters().addAll(
             new FileChooser.ExtensionFilter("Arquivos Excel", "*.xlsx", "*.xls"),
             new FileChooser.ExtensionFilter("Todos os arquivos", "*.*")
         );
-        
         File file = fileChooser.showOpenDialog(null);
         if (file != null) {
             campo.setText(file.getAbsolutePath());
+        }
+    }
+    
+    private void buscarArquivoCadastro() {
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Selecionar planilha de cadastro");
+        fileChooser.getExtensionFilters().addAll(
+            new FileChooser.ExtensionFilter("Arquivos Excel", "*.xlsx", "*.xls"),
+            new FileChooser.ExtensionFilter("Todos os arquivos", "*.*")
+        );
+        File file = fileChooser.showOpenDialog(null);
+        if (file != null) {
+            campoCadastro.setText(file.getAbsolutePath());
+            // Carregar abas
+            try {
+                List<String> abas = leitorPlanilha.listarNomesAbasDados(file.getAbsolutePath());
+                listViewAbas.getItems().setAll(abas);
+                if (!abas.isEmpty()) {
+                    listViewAbas.getSelectionModel().selectAll();
+                    listViewAbas.setDisable(false);
+                    lblAbas.setDisable(false);
+                } else {
+                    listViewAbas.setPlaceholder(new Label("Nenhuma aba de dados encontrada"));
+                    listViewAbas.setDisable(true);
+                    lblAbas.setDisable(true);
+                }
+            } catch (IOException e) {
+                areaResultado.setText("❌ Erro ao ler as abas: " + e.getMessage());
+            }
         }
     }
     
@@ -198,9 +271,11 @@ public class interfaceApp extends Application {
 
         Thread thread = new Thread(() -> {
             try {
+                // 1. Ler financeiro
                 List<registroPlanilha> financeiroOriginal = leitorPlanilha.ler(caminhoFinanceiro);
                 List<registroPlanilha> financeiroFiltrado = new ArrayList<>(financeiroOriginal);
 
+                // 2. Filtro por período (ainda com data mínima – depois expandiremos para intervalo)
                 final boolean[] aplicarFiltro = {false};
                 final String[] mesReferencia = {null};
                 final CountDownLatch latch = new CountDownLatch(1);
@@ -248,12 +323,19 @@ public class interfaceApp extends Application {
                     }
                 }
 
-                List<registroPlanilha> cadastro = leitorPlanilha.ler(caminhoCadastro);
+                // 3. Ler cadastro usando as abas selecionadas
+                List<registroPlanilha> cadastro;
+                List<String> abasSelecionadas = listViewAbas.getSelectionModel().getSelectedItems();
+                if (abasSelecionadas == null || abasSelecionadas.isEmpty()) {
+                    cadastro = leitorPlanilha.ler(caminhoCadastro);
+                } else {
+                    cadastro = leitorPlanilha.ler(caminhoCadastro, abasSelecionadas);
+                }
+
+                // 4. Comparar
                 comparadorPlanilhas.ResultadoComparacao resultado = comparadorPlanilhas.comparar(financeiroFiltrado, cadastro);
 
-                // O BANCO DE DADOS LOCAL FOI REMOVIDO – NÃO SALVAMOS MAIS A SESSÃO
-                // (remova o bloco abaixo se ainda estiver presente)
-
+                // Debug
                 System.out.println("\n========== DEBUG ==========");
                 System.out.println("Financeiro size (após filtro): " + financeiroFiltrado.size());
                 System.out.println("Cadastro size: " + cadastro.size());
