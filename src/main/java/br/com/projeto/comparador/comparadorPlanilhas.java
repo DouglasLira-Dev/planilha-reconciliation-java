@@ -113,6 +113,23 @@ public class comparadorPlanilhas {
     
     // Classe para armazenar o resultado completo
     public static class ResultadoComparacao {
+        // Classe interna para armazenar pares de abreviação
+        public static class PossivelAbreviatura {
+            private registroPlanilha financeiro;
+            private registroPlanilha cadastro;
+            private double similaridade;
+            
+            public PossivelAbreviatura(registroPlanilha financeiro, registroPlanilha cadastro, double similaridade) {
+                this.financeiro = financeiro;
+                this.cadastro = cadastro;
+                this.similaridade = similaridade;
+            }
+            
+            public registroPlanilha getFinanceiro() { return financeiro; }
+            public registroPlanilha getCadastro() { return cadastro; }
+            public double getSimilaridade() { return similaridade; }
+        }
+        
         private List<registroPlanilha> faltantesNoCadastro;
         private List<registroPlanilha> excedentesNoCadastro;
         private List<registroPlanilha> conformes;
@@ -121,6 +138,8 @@ public class comparadorPlanilhas {
         private int totalConformes;
         private ConfiguracaoComparacao configuracao;
         private List<registroPlanilha> canceladosNoCadastro;
+        // Lista de possíveis abreviações (agora armazena o par)
+        private List<PossivelAbreviatura> possiveisAbreviacoes;
         
         public ResultadoComparacao() {
             this.faltantesNoCadastro = new ArrayList<>();
@@ -131,6 +150,7 @@ public class comparadorPlanilhas {
             this.totalConformes = 0;
             this.configuracao = ConfiguracaoComparacao.criarPadrao();
             this.canceladosNoCadastro = new ArrayList<>();
+            this.possiveisAbreviacoes = new ArrayList<>();
         }
         
         // Getters
@@ -141,10 +161,15 @@ public class comparadorPlanilhas {
         public List<registroPlanilha> getConflitosCPFMatricula() { return conflitosCPFMatricula; }
         public List<registroPlanilha> getConformes() { return conformes; }
         public ConfiguracaoComparacao getConfiguracao() { return configuracao; }
+        public List<PossivelAbreviatura> getPossiveisAbreviacoes() { return possiveisAbreviacoes; }
         
         public void addConforme(registroPlanilha reg) { this.conformes.add(reg); }
         public void setTotalConformes(int totalConformes) { this.totalConformes = totalConformes; }
         public void setConfiguracao(ConfiguracaoComparacao configuracao) { this.configuracao = configuracao; }
+        public void addPossivelAbreviatura(registroPlanilha fin, registroPlanilha cad, double similaridade) {
+            this.possiveisAbreviacoes.add(new PossivelAbreviatura(fin, cad, similaridade));
+        }
+        public int getTotalPossiveisAbreviacoes() { return possiveisAbreviacoes.size(); }
         
         public int getTotalFaltantes() { return faltantesNoCadastro.size(); }
         public int getTotalConformes() { return conformes.size(); }
@@ -152,6 +177,7 @@ public class comparadorPlanilhas {
         public int getTotalCancelados() { return canceladosNoCadastro.size(); }
         public int getTotalDivergencias() { return divergenciasPorChave.size(); }
         public int getTotalConflitos() { return conflitosCPFMatricula.size(); }
+        
         public int getTotalErros() { 
             int total = 0;
             for (List<Divergencia> lista : divergenciasPorChave.values()) {
@@ -306,8 +332,7 @@ public class comparadorPlanilhas {
      */
     public static ResultadoComparacao comparar(List<registroPlanilha> financeiro, 
                                                 List<registroPlanilha> cadastro,
-                                                ConfiguracaoComparacao config
-                                            ) {
+                                                ConfiguracaoComparacao config) {
         ResultadoComparacao resultado = new ResultadoComparacao();
         resultado.setConfiguracao(config);
         
@@ -328,7 +353,7 @@ public class comparadorPlanilhas {
             if (reg.isCancelado()) {
                  resultado.addCancelado(reg);
                 continue;
-                }
+            }
             String chave = chaveComposta(reg);
             if (chave != null && !chave.isEmpty() && !chave.equals("|")) {
                 mapCadastro.put(chave, reg);
@@ -351,7 +376,7 @@ public class comparadorPlanilhas {
             }
         }
         
-        // 3. Verificar divergências (está nas duas, com mesmo CPF+Matrícula)
+        // 3. Verificar divergências e tratar abreviações
         for (Map.Entry<String, registroPlanilha> entry : mapFinanceiro.entrySet()) {
             String chave = entry.getKey();
             if (mapCadastro.containsKey(chave)) {
@@ -360,12 +385,25 @@ public class comparadorPlanilhas {
                 
                 List<Divergencia> divergencias = compararRegistros(chave, regFin, regCad, config);
                 
-                if (!divergencias.isEmpty()) {
-                    for (Divergencia div : divergencias) {
-                        resultado.addDivergencia(chave, div);
+                // Separa as abreviações das divergências reais
+                List<Divergencia> divergenciasReais = new ArrayList<>();
+                for (Divergencia div : divergencias) {
+                    if (div.getCampo().contains("abreviação")) {
+                        // É uma possível abreviação: armazena o par e conta como conforme
+                        double similaridade = div.getSimilaridade() != null ? div.getSimilaridade() : 0.0;
+                        resultado.addPossivelAbreviatura(regFin, regCad, similaridade);
+                        resultado.addConforme(regFin);
+                    } else {
+                        divergenciasReais.add(div);
                     }
-                } else {
-                    resultado.addConforme(regFin);   // <-- ALTERAÇÃO PRINCIPAL
+                }
+                // Adiciona apenas as divergências reais (não abreviações)
+                for (Divergencia div : divergenciasReais) {
+                    resultado.addDivergencia(chave, div);
+                }
+                // Se não houve nenhuma divergência real, e também não havia abreviações, é conforme puro
+                if (divergenciasReais.isEmpty() && divergencias.isEmpty()) {
+                    resultado.addConforme(regFin);
                 }
             }
         }
@@ -401,6 +439,7 @@ public class comparadorPlanilhas {
         System.out.println("-".repeat(70));
         System.out.println("⚠️ Cancelados no cadastro: " + resultado.getTotalCancelados());
         System.out.println("✅ Registros conformes (idênticos): " + resultado.getTotalConformes());
+        System.out.println("📝 Possíveis abreviações (incluídas nos conformes): " + resultado.getTotalPossiveisAbreviacoes());
         System.out.println("❌ Registros que se encontram apenas no financeiro: " + resultado.getTotalFaltantes());
         System.out.println("⚠️  Registros que não estão no financeiro: " + resultado.getTotalExcedentes());
         System.out.println("🔄 Divergências: " + resultado.getTotalDivergencias() + " registros");

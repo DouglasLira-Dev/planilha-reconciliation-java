@@ -22,13 +22,6 @@ public class geradorRelatorioExcel {
     
     /**
      * Gera o relatório completo em Excel
-     * @param resultado Resultado da comparação
-     * @param caminhoFinanceiro Caminho da planilha financeiro
-     * @param caminhoCadastro Caminho da planilha cadastro
-     * @param arquivoSaida Caminho onde salvar o arquivo Excel
-     * @param totalFinanceiro Total de registros do financeiro
-     * @param totalCadastro Total de registros do cadastro
-     * @throws IOException Erro ao salvar arquivo
      */
     public static void gerar(comparadorPlanilhas.ResultadoComparacao resultado, 
                              String caminhoFinanceiro, 
@@ -48,22 +41,18 @@ public class geradorRelatorioExcel {
                                 int totalCadastro) throws IOException {
         
         try (Workbook workbook = new XSSFWorkbook()) {
-            // Criar estilos
             criarEstilos(workbook);
             
-            // Criar abas
             criarAbaResumo(workbook, resultado, caminhoFinanceiro, caminhoCadastro, totalFinanceiro, totalCadastro);
             criarAbaConformes(workbook, resultado);
             criarAbaFaltantes(workbook, resultado);
             criarAbaExcedentes(workbook, resultado);
             criarAbaDivergencias(workbook, resultado);
             criarAbaConflitos(workbook, resultado);
-            criarAbaPossiveisAbreviacoes(workbook, resultado);
+            criarAbaPossiveisAbreviacoes(workbook, resultado); // aba modificada
             criarAbaCancelados(workbook, resultado);            
             criarAbaDetalhado(workbook, resultado);
                           
-            
-            // Salvar arquivo
             try (FileOutputStream fileOut = new FileOutputStream(arquivoSaida)) {
                 workbook.write(fileOut);
             }
@@ -73,14 +62,12 @@ public class geradorRelatorioExcel {
     }
     
     private void criarEstilos(Workbook workbook) {
-        // Título (negrito, tamanho 14)
         estiloTitulo = workbook.createCellStyle();
         Font fontTitulo = workbook.createFont();
         fontTitulo.setBold(true);
         fontTitulo.setFontHeightInPoints((short) 14);
         estiloTitulo.setFont(fontTitulo);
         
-        // Cabeçalho (negrito, fundo cinza)
         estiloCabecalho = workbook.createCellStyle();
         Font fontCabecalho = workbook.createFont();
         fontCabecalho.setBold(true);
@@ -92,7 +79,6 @@ public class geradorRelatorioExcel {
         estiloCabecalho.setBorderLeft(BorderStyle.THIN);
         estiloCabecalho.setBorderRight(BorderStyle.THIN);
         
-        // Erro (fundo vermelho)
         estiloErro = workbook.createCellStyle();
         estiloErro.setFillForegroundColor(IndexedColors.RED.getIndex());
         estiloErro.setFillPattern(FillPatternType.SOLID_FOREGROUND);
@@ -101,7 +87,6 @@ public class geradorRelatorioExcel {
         estiloErro.setBorderLeft(BorderStyle.THIN);
         estiloErro.setBorderRight(BorderStyle.THIN);
         
-        // Aviso (fundo amarelo)
         estiloAviso = workbook.createCellStyle();
         estiloAviso.setFillForegroundColor(IndexedColors.YELLOW.getIndex());
         estiloAviso.setFillPattern(FillPatternType.SOLID_FOREGROUND);
@@ -110,12 +95,10 @@ public class geradorRelatorioExcel {
         estiloAviso.setBorderLeft(BorderStyle.THIN);
         estiloAviso.setBorderRight(BorderStyle.THIN);
         
-        // Sucesso (fundo verde)
         estiloSucesso = workbook.createCellStyle();
         estiloSucesso.setFillForegroundColor(IndexedColors.GREEN.getIndex());
         estiloSucesso.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         
-        // Destaque (fundo azul claro)
         estiloDestaque = workbook.createCellStyle();
         estiloDestaque.setFillForegroundColor(IndexedColors.LIGHT_BLUE.getIndex());
         estiloDestaque.setFillPattern(FillPatternType.SOLID_FOREGROUND);
@@ -127,15 +110,13 @@ public class geradorRelatorioExcel {
         Sheet sheet = workbook.createSheet("01 - Resumo");
         int rowNum = 0;
         
-        // Título
         Row titleRow = sheet.createRow(rowNum++);
         Cell titleCell = titleRow.createCell(0);
         titleCell.setCellValue("RELATÓRIO DE COMPARAÇÃO DE PLANILHAS");
         titleCell.setCellStyle(estiloTitulo);
         
-        rowNum++; // linha em branco
+        rowNum++;
         
-        // Informações da comparação
         addInfoRow(sheet, rowNum++, "Data/Hora da geração:", 
             LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
         addInfoRow(sheet, rowNum++, "Planilha da Prévia:", caminhoFinanceiro);
@@ -144,10 +125,9 @@ public class geradorRelatorioExcel {
         addInfoRow(sheet, rowNum++, "Limiar similaridade de nomes:", 
             resultado.getConfiguracao().getLimiarSimilaridadeNomes() + "%");
         
-        rowNum++; // linha em branco
-        rowNum++; // linha em branco
+        rowNum++;
+        rowNum++;
         
-        // Estatísticas
         addInfoRow(sheet, rowNum++, "📊 ESTATÍSTICAS DA COMPARAÇÃO", "");
         addInfoRow(sheet, rowNum++, "", "");
         addInfoRow(sheet, rowNum++, "Total de Registros da Prévia:", String.valueOf(totalFinanceiro));
@@ -167,11 +147,9 @@ public class geradorRelatorioExcel {
             String.valueOf(resultado.getTotalAvisos()));
         addInfoRow(sheet, rowNum++, "⚡ Conflitos (CPF igual, matrícula diferente):", 
             String.valueOf(resultado.getTotalConflitos()));
-        // NOVA LINHA: Cancelados
         addInfoRow(sheet, rowNum++, "⚠️ Cancelados no cadastro (ignorados):", 
             String.valueOf(resultado.getTotalCancelados()));
         
-        // Ajustar largura das colunas
         sheet.setColumnWidth(0, 8000);
         sheet.setColumnWidth(1, 6000);
     }
@@ -230,6 +208,7 @@ public class geradorRelatorioExcel {
             sheet.setColumnWidth(i, 5000);
         }
     }
+    
     private void criarAbaConformes(Workbook workbook, comparadorPlanilhas.ResultadoComparacao resultado) {
         Sheet sheet = workbook.createSheet("02 - Registros Conformes");
         int rowNum = 0;
@@ -349,11 +328,6 @@ public class geradorRelatorioExcel {
             String matricula = partes.length > 1 ? partes[1] : "";
             
             for (var div : entry.getValue()) {
-                // Pula se for uma possível abreviação (será listada em outra aba)
-                if (div.getCampo().contains("abreviação")) {
-                    continue;
-                }
-
                 Row row = sheet.createRow(rowNum++);
                 row.createCell(0).setCellValue(cpf);
                 row.createCell(1).setCellValue(matricula);
@@ -429,34 +403,29 @@ public class geradorRelatorioExcel {
         sheet.setColumnWidth(9, 10000);
     }
 
+    // ================== MÉTODO MODIFICADO ==================
     private void criarAbaPossiveisAbreviacoes(Workbook workbook, comparadorPlanilhas.ResultadoComparacao resultado) {
         Sheet sheet = workbook.createSheet("07 - Possíveis Abreviações");
         int rowNum = 0;
 
         Row titleRow = sheet.createRow(rowNum++);
         Cell titleCell = titleRow.createCell(0);
-        titleCell.setCellValue("REGISTROS COM POSSÍVEIS ABREVIAÇÕES (NOMES)");
+        titleCell.setCellValue("REGISTROS COM POSSÍVEIS ABREVIAÇÕES (CONSIDERADOS CONFORMES)");
         titleCell.setCellStyle(estiloTitulo);
 
         rowNum++;
 
-        // Contar quantas abreviações existem
-        int totalAbreviacoes = 0;
-        for (List<comparadorPlanilhas.Divergencia> list : resultado.getDivergenciasPorChave().values()) {
-            for (comparadorPlanilhas.Divergencia div : list) {
-                if (div.getCampo().contains("abreviação")) {
-                    totalAbreviacoes++;
-                }
-            }
-        }
-
-        if (totalAbreviacoes == 0) {
+        // Obtém a lista de PossivelAbreviatura (pares financeiro/cadastro)
+        var abreviacoes = resultado.getPossiveisAbreviacoes();
+        if (abreviacoes == null || abreviacoes.isEmpty()) {
             Row emptyRow = sheet.createRow(rowNum);
             emptyRow.createCell(0).setCellValue("Nenhuma possível abreviação encontrada.");
             return;
         }
 
-        String[] headers = {"CPF", "Matrícula", "Campo", "Valor Financeiro", "Valor Cadastro", "Similaridade"};
+        // Cabeçalho com duas colunas de nome: Financeiro (abreviado) e Cadastro (completo)
+        String[] headers = {"Matrícula", "CPF", "Nome Financeiro (abreviado)", "Nome Cadastro (completo)", 
+                            "Similaridade", "Nível Estágio", "Data Início", "Data Fim", "Banco", "Agência", "Conta"};
         Row headerRow = sheet.createRow(rowNum++);
         for (int i = 0; i < headers.length; i++) {
             Cell cell = headerRow.createCell(i);
@@ -464,35 +433,28 @@ public class geradorRelatorioExcel {
             cell.setCellStyle(estiloCabecalho);
         }
 
-        for (Map.Entry<String, List<comparadorPlanilhas.Divergencia>> entry : resultado.getDivergenciasPorChave().entrySet()) {
-            String[] partes = entry.getKey().split("\\|");
-            String cpf = partes.length > 0 ? partes[0] : "";
-            String matricula = partes.length > 1 ? partes[1] : "";
-
-            for (comparadorPlanilhas.Divergencia div : entry.getValue()) {
-                if (div.getCampo().contains("abreviação")) {
-                    Row row = sheet.createRow(rowNum++);
-                    row.createCell(0).setCellValue(cpf);
-                    row.createCell(1).setCellValue(matricula);
-                    row.createCell(2).setCellValue(div.getCampo());
-                    row.createCell(3).setCellValue(div.getValorFinanceiro());
-                    row.createCell(4).setCellValue(div.getValorCadastro());
-
-                    Cell simCell = row.createCell(5);
-                    if (div.getSimilaridade() != null) {
-                        simCell.setCellValue(String.format("%.1f%%", div.getSimilaridade()));
-                    } else {
-                        simCell.setCellValue("N/A");
-                    }
-                    simCell.setCellStyle(estiloAviso);
-                }
-            }
+        for (var abv : abreviacoes) {
+            var fin = abv.getFinanceiro();
+            var cad = abv.getCadastro();
+            Row row = sheet.createRow(rowNum++);
+            row.createCell(0).setCellValue(fin.getMatricula());
+            row.createCell(1).setCellValue(fin.getCpf());
+            row.createCell(2).setCellValue(fin.getNome());          // nome abreviado do financeiro
+            row.createCell(3).setCellValue(cad.getNome());          // nome completo do cadastro
+            row.createCell(4).setCellValue(String.format("%.1f%%", abv.getSimilaridade()));
+            row.createCell(5).setCellValue(cad.getNivelEstagio());
+            row.createCell(6).setCellValue(cad.getDataInicioStr());
+            row.createCell(7).setCellValue(cad.getDataFimStr());
+            row.createCell(8).setCellValue(cad.getBanco());
+            row.createCell(9).setCellValue(cad.getAgencia());
+            row.createCell(10).setCellValue(cad.getConta());
         }
 
         for (int i = 0; i < headers.length; i++) {
-            sheet.setColumnWidth(i, 5000);
+            sheet.setColumnWidth(i, i == 4 ? 4000 : 5000);
         }
-        sheet.setColumnWidth(5, 4000);
+        sheet.setColumnWidth(2, 6000); // nome financeiro
+        sheet.setColumnWidth(3, 6000); // nome cadastro
     }
     
     private void criarAbaCancelados(Workbook workbook, comparadorPlanilhas.ResultadoComparacao resultado) {
@@ -528,16 +490,13 @@ public class geradorRelatorioExcel {
             row.createCell(1).setCellValue(reg.getCpf());
             row.createCell(2).setCellValue(reg.getNome());
             row.createCell(3).setCellValue(reg.getNivelEstagio());
-            // Exibe o valor original (pode ter "CANCELADO") - você pode armazená-lo se quiser, mas o campo dataInicioStr foi limpo.
-            // Para manter o texto original, você precisaria guardar em uma variável separada. Vou deixar vazio como exemplo.
-            row.createCell(4).setCellValue(reg.getDataInicioStr()); // Pode estar vazio após normalização
+            row.createCell(4).setCellValue(reg.getDataInicioStr());
             row.createCell(5).setCellValue(reg.getDataFimStr());
             row.createCell(6).setCellValue(reg.getBanco());
             row.createCell(7).setCellValue(reg.getAgencia());
             row.createCell(8).setCellValue(reg.getConta());
             row.createCell(9).setCellValue("Registro cancelado (não comparado)");
             
-            // Opcional: pintar a linha de amarelo para destaque
             for (int i = 0; i < headers.length; i++) {
                 if (row.getCell(i) == null) row.createCell(i);
                 row.getCell(i).setCellStyle(estiloAviso);
