@@ -1,11 +1,18 @@
 package br.com.projeto.comparador;
 
 import javafx.application.Application;
+import javafx.embed.swing.SwingFXUtils;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
+import javafx.scene.Node;
 import javafx.scene.Scene;
+import javafx.scene.chart.BarChart;
+import javafx.scene.chart.CategoryAxis;
+import javafx.scene.chart.NumberAxis;
 import javafx.scene.chart.PieChart;
+import javafx.scene.chart.XYChart;
 import javafx.scene.control.*;
+import javafx.scene.image.WritableImage;
 import javafx.scene.layout.*;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -14,7 +21,7 @@ import javafx.scene.text.FontWeight;
 import javafx.scene.paint.Color;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.Modality;
-
+import javax.imageio.ImageIO;
 import java.io.File;
 import java.io.IOException;
 import java.time.LocalDate;
@@ -41,7 +48,14 @@ public class interfaceApp extends Application {
     
     private ListView<String> listViewAbas;
     private Label lblAbas;
-    private Tab tabGraficos;   // nova aba para gráficos
+    private Tab tabGraficos;
+    
+    // Novos campos para gráficos
+    private VBox graficosContainer;
+    private PieChart pieChart;
+    private BarChart<String, Number> barChart;
+    private ToggleButton btnPizza;
+    private ToggleButton btnBarras;
     
     @Override
     public void start(Stage primaryStage) {
@@ -169,13 +183,29 @@ public class interfaceApp extends Application {
         areaResultado.setPrefHeight(300);
         tabTexto.setContent(areaResultado);
         
+        // --- Aba de Gráficos (modificada) ---
         tabGraficos = new Tab("📊 Gráficos");
-        VBox vboxGraficos = new VBox();
-        vboxGraficos.setAlignment(Pos.CENTER);
-        vboxGraficos.setSpacing(10);
-        Label lblInfo = new Label("Os gráficos serão exibidos após a comparação.");
-        vboxGraficos.getChildren().add(lblInfo);
-        tabGraficos.setContent(vboxGraficos);
+        graficosContainer = new VBox(10);
+        graficosContainer.setAlignment(Pos.CENTER);
+        graficosContainer.setPadding(new Insets(10));
+        
+        // Botões de alternância
+        ToggleGroup group = new ToggleGroup();
+        btnPizza = new ToggleButton("🍕 Gráfico de Pizza");
+        btnBarras = new ToggleButton("📊 Gráfico de Barras");
+        btnPizza.setToggleGroup(group);
+        btnBarras.setToggleGroup(group);
+        btnPizza.setSelected(true);
+        
+        HBox toggleBox = new HBox(10, btnPizza, btnBarras);
+        toggleBox.setAlignment(Pos.CENTER);
+        
+        Button btnExportar = new Button("📸 Exportar Gráfico como PNG");
+        btnExportar.setOnAction(e -> exportarGraficoAtual());
+        
+        graficosContainer.getChildren().addAll(toggleBox, btnExportar);
+        tabGraficos.setContent(graficosContainer);
+        // --------------------------------
         
         tabPaneResultados.getTabs().addAll(tabTexto, tabGraficos);
         centerBox.getChildren().add(tabPaneResultados);
@@ -382,7 +412,7 @@ public class interfaceApp extends Application {
                 // Atualizar interface
                 javafx.application.Platform.runLater(() -> {
                     areaResultado.setText(resultadoTexto);
-                    atualizarGraficoPizza(resultado);   // atualiza o gráfico
+                    criarGraficos(resultado);   // cria ambos os gráficos e configura alternância
                     btnComparar.setDisable(false);
                     progressIndicator.setVisible(false);
 
@@ -421,29 +451,142 @@ public class interfaceApp extends Application {
         return filtrados;
     }
     
-    private void atualizarGraficoPizza(comparadorPlanilhas.ResultadoComparacao resultado) {
-        PieChart pieChart = new PieChart();
+    // ========== NOVOS MÉTODOS PARA GRÁFICOS ==========
+    private void criarGraficos(comparadorPlanilhas.ResultadoComparacao resultado) {
+        // Gráfico de Pizza
+        pieChart = new PieChart();
         pieChart.setTitle("Distribuição da Comparação");
         pieChart.setLabelsVisible(true);
         pieChart.setLegendVisible(true);
+        adicionarDadosPizza(resultado);
         
-        // Adiciona dados (somente se > 0)
-        if (resultado.getTotalConformes() > 0)
-            pieChart.getData().add(new PieChart.Data("Conformes", resultado.getTotalConformes()));
-        if (resultado.getTotalFaltantes() > 0)
-            pieChart.getData().add(new PieChart.Data("Faltantes", resultado.getTotalFaltantes()));
-        if (resultado.getTotalExcedentes() > 0)
-            pieChart.getData().add(new PieChart.Data("Excedentes", resultado.getTotalExcedentes()));
-        if (resultado.getTotalDivergencias() > 0)
-            pieChart.getData().add(new PieChart.Data("Divergências", resultado.getTotalDivergencias()));
-        if (resultado.getTotalCancelados() > 0)
-            pieChart.getData().add(new PieChart.Data("Cancelados", resultado.getTotalCancelados()));
+        // Gráfico de Barras
+        CategoryAxis xAxis = new CategoryAxis();
+        xAxis.setLabel("Categoria");
+        NumberAxis yAxis = new NumberAxis();
+        yAxis.setLabel("Quantidade");
+        barChart = new BarChart<>(xAxis, yAxis);
+        barChart.setTitle("Comparação por Categoria");
+        barChart.setLegendVisible(false);
+        barChart.setPrefHeight(400);
+        adicionarDadosBarras(resultado);
         
-        VBox vbox = new VBox(pieChart);
-        vbox.setAlignment(Pos.CENTER);
-        vbox.setSpacing(10);
-        tabGraficos.setContent(vbox);
+        // Alternância entre os gráficos
+        btnPizza.setOnAction(e -> mostrarGrafico(pieChart));
+        btnBarras.setOnAction(e -> mostrarGrafico(barChart));
+        
+        // Mostra o pizza por padrão
+        mostrarGrafico(pieChart);
     }
+    
+    // *** ÚNICA PARTE MODIFICADA (forçar label da fatia Excedentes) ***
+    private void adicionarDadosPizza(comparadorPlanilhas.ResultadoComparacao resultado) {
+        pieChart.getData().clear();
+        
+        int conforme = resultado.getTotalConformes();
+        int faltante = resultado.getTotalFaltantes();
+        int excedente = resultado.getTotalExcedentes();
+        int divergente = resultado.getTotalDivergencias();
+        int cancelado = resultado.getTotalCancelados();
+        int total = conforme + faltante + excedente + divergente + cancelado;
+        
+        if (total == 0) return;
+        
+        java.util.function.Function<Integer, String> formatar = (valor) -> {
+            double percent = (valor * 100.0) / total;
+            return String.format(" (%.1f%%)", percent);
+        };
+        
+        if (conforme > 0)
+            pieChart.getData().add(new PieChart.Data("Conformes" + formatar.apply(conforme), conforme));
+        if (faltante > 0)
+            pieChart.getData().add(new PieChart.Data("Faltantes" + formatar.apply(faltante), faltante));
+        if (excedente > 0)
+            pieChart.getData().add(new PieChart.Data("Excedentes" + formatar.apply(excedente), excedente));
+        if (divergente > 0)
+            pieChart.getData().add(new PieChart.Data("Divergências" + formatar.apply(divergente), divergente));
+        if (cancelado > 0)
+            pieChart.getData().add(new PieChart.Data("Cancelados" + formatar.apply(cancelado), cancelado));
+        
+        // Configurações agressivas para tentar exibir a label mesmo em fatias pequenas
+        pieChart.setLabelLineLength(30);          // linha longa
+        pieChart.setLabelsVisible(true);
+        pieChart.setStartAngle(90);
+        pieChart.setClockwise(true);
+        pieChart.setPrefSize(700, 700);           // área bem grande
+        
+        // CSS para forçar visibilidade
+        pieChart.setStyle(".chart-pie-label { -fx-font-size: 11px; } .chart-pie-label-line { -fx-stroke-width: 2; }");
+        
+        // Força a label de cada fatia (incluindo a Excedentes)
+        pieChart.getData().forEach(data -> {
+            data.getNode().setStyle("-fx-pie-label-visible: true;");
+            // Tenta acessar o nó da label e torná-lo visível (se possível)
+            data.getNode().applyCss();
+            data.getNode().setVisible(true);
+        });
+        
+        // Pequena pausa para permitir o layout (não é garantido, mas ajuda)
+        try { Thread.sleep(50); } catch (InterruptedException e) { }
+    }
+    // ********************************************
+    
+    private void adicionarDadosBarras(comparadorPlanilhas.ResultadoComparacao resultado) {
+        barChart.getData().clear();
+        XYChart.Series<String, Number> series = new XYChart.Series<>();
+        series.setName("Quantidade");
+        series.getData().add(new XYChart.Data<>("Conformes", resultado.getTotalConformes()));
+        series.getData().add(new XYChart.Data<>("Faltantes", resultado.getTotalFaltantes()));
+        series.getData().add(new XYChart.Data<>("Excedentes", resultado.getTotalExcedentes()));
+        series.getData().add(new XYChart.Data<>("Divergências", resultado.getTotalDivergencias()));
+        series.getData().add(new XYChart.Data<>("Cancelados", resultado.getTotalCancelados()));
+        barChart.getData().add(series);
+        
+        barChart.lookupAll(".default-color0.chart-bar").forEach(node -> node.setStyle("-fx-bar-fill: #2ecc71;"));
+        barChart.lookupAll(".default-color1.chart-bar").forEach(node -> node.setStyle("-fx-bar-fill: #e74c3c;"));
+        barChart.lookupAll(".default-color2.chart-bar").forEach(node -> node.setStyle("-fx-bar-fill: #f39c12;"));
+        barChart.lookupAll(".default-color3.chart-bar").forEach(node -> node.setStyle("-fx-bar-fill: #9b59b6;"));
+        barChart.lookupAll(".default-color4.chart-bar").forEach(node -> node.setStyle("-fx-bar-fill: #95a5a6;"));
+    }
+    
+    private void mostrarGrafico(Node graph) {
+        graficosContainer.getChildren().removeIf(node -> node instanceof PieChart || node instanceof BarChart);
+        graficosContainer.getChildren().add(1, graph);
+    }
+    
+    private void exportarGraficoAtual() {
+        Node currentGraph = graficosContainer.getChildren().stream()
+                .filter(node -> node instanceof PieChart || node instanceof BarChart)
+                .findFirst()
+                .orElse(null);
+        if (currentGraph == null) {
+            new Alert(Alert.AlertType.WARNING, "Nenhum gráfico disponível para exportar.").show();
+            return;
+        }
+        
+        FileChooser fileChooser = new FileChooser();
+        fileChooser.setTitle("Salvar gráfico como PNG");
+        fileChooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PNG Image", "*.png"));
+        File file = fileChooser.showSaveDialog(null);
+        if (file != null) {
+            try {
+                WritableImage image = currentGraph.snapshot(null,null);
+                String path = file.getAbsolutePath();
+                if (!path.toLowerCase().endsWith(".png")) path += ".png";
+                ImageIO.write(SwingFXUtils.fromFXImage(image, null), "png", new File(path));
+                
+                Alert alert = new Alert(Alert.AlertType.INFORMATION);
+                alert.setTitle("Sucesso");
+                alert.setHeaderText("Gráfico exportado!");
+                alert.setContentText("Arquivo salvo em: " + path);
+                alert.showAndWait();
+            } catch (Exception ex) {
+                ex.printStackTrace();
+                new Alert(Alert.AlertType.ERROR, "Erro ao exportar gráfico: " + ex.getMessage()).show();
+            }
+        }
+    }
+    // ============================================
     
     private String gerarTextoResultado(comparadorPlanilhas.ResultadoComparacao resultado, int totalFin, int totalCad) {
         StringBuilder sb = new StringBuilder();
