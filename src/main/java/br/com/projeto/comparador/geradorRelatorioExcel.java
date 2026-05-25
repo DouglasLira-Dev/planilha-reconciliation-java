@@ -145,7 +145,7 @@ public class geradorRelatorioExcel {
             String.valueOf(resultado.getTotalErros()));
         addInfoRow(sheet, rowNum++, "   └── ⚠️ Avisos:", 
             String.valueOf(resultado.getTotalAvisos()));
-        addInfoRow(sheet, rowNum++, "⚡ Conflitos (CPF igual, matrícula diferente):", 
+        addInfoRow(sheet, rowNum++, "⚡ Incompatibilidades (CPF igual, matrícula diferente):", 
             String.valueOf(resultado.getTotalConflitos()));
         addInfoRow(sheet, rowNum++, "⚠️ Cancelados no cadastro (ignorados):", 
             String.valueOf(resultado.getTotalCancelados()));
@@ -163,6 +163,50 @@ public class geradorRelatorioExcel {
         Cell valueCell = row.createCell(1);
         valueCell.setCellValue(value);
         valueCell.setCellStyle(estiloDestaque);
+    }
+    
+    private void criarAbaConformes(Workbook workbook, comparadorPlanilhas.ResultadoComparacao resultado) {
+        Sheet sheet = workbook.createSheet("02 - Registros Conformes");
+        int rowNum = 0;
+
+        Row titleRow = sheet.createRow(rowNum++);
+        Cell titleCell = titleRow.createCell(0);
+        titleCell.setCellValue("REGISTROS CONFORMES (IDÊNTICOS NAS DUAS PLANILHAS)");
+        titleCell.setCellStyle(estiloTitulo);
+
+        rowNum++;
+
+        if (resultado.getConformes().isEmpty()) {
+            Row emptyRow = sheet.createRow(rowNum);
+            emptyRow.createCell(0).setCellValue("Nenhum registro conforme encontrado.");
+            return;
+        }
+
+        String[] headers = {"Matrícula", "CPF", "Nome", "Nível Estágio", "Data Início", 
+                            "Data Fim", "Banco", "Agência", "Conta"};
+        Row headerRow = sheet.createRow(rowNum++);
+        for (int i = 0; i < headers.length; i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(estiloCabecalho);
+        }
+
+        for (var reg : resultado.getConformes()) {
+            Row row = sheet.createRow(rowNum++);
+            row.createCell(0).setCellValue(reg.getMatricula());
+            row.createCell(1).setCellValue(reg.getCpf());
+            row.createCell(2).setCellValue(reg.getNome());
+            row.createCell(3).setCellValue(reg.getNivelEstagio());
+            row.createCell(4).setCellValue(reg.getDataInicioStr());
+            row.createCell(5).setCellValue(reg.getDataFimStr());
+            row.createCell(6).setCellValue(reg.getBanco());
+            row.createCell(7).setCellValue(reg.getAgencia());
+            row.createCell(8).setCellValue(reg.getConta());
+        }
+
+        for (int i = 0; i < headers.length; i++) {
+            sheet.setColumnWidth(i, 5000);
+        }
     }
     
     private void criarAbaFaltantes(Workbook workbook, comparadorPlanilhas.ResultadoComparacao resultado) {
@@ -209,49 +253,7 @@ public class geradorRelatorioExcel {
         }
     }
     
-    private void criarAbaConformes(Workbook workbook, comparadorPlanilhas.ResultadoComparacao resultado) {
-        Sheet sheet = workbook.createSheet("02 - Registros Conformes");
-        int rowNum = 0;
-
-        Row titleRow = sheet.createRow(rowNum++);
-        Cell titleCell = titleRow.createCell(0);
-        titleCell.setCellValue("REGISTROS CONFORMES (IDÊNTICOS NAS DUAS PLANILHAS)");
-        titleCell.setCellStyle(estiloTitulo);
-
-        rowNum++;
-
-        if (resultado.getConformes().isEmpty()) {
-            Row emptyRow = sheet.createRow(rowNum);
-            emptyRow.createCell(0).setCellValue("Nenhum registro conforme encontrado.");
-            return;
-        }
-
-        String[] headers = {"Matrícula", "CPF", "Nome", "Nível Estágio", "Data Início", 
-                            "Data Fim", "Banco", "Agência", "Conta"};
-        Row headerRow = sheet.createRow(rowNum++);
-        for (int i = 0; i < headers.length; i++) {
-            Cell cell = headerRow.createCell(i);
-            cell.setCellValue(headers[i]);
-            cell.setCellStyle(estiloCabecalho);
-        }
-
-        for (var reg : resultado.getConformes()) {
-            Row row = sheet.createRow(rowNum++);
-            row.createCell(0).setCellValue(reg.getMatricula());
-            row.createCell(1).setCellValue(reg.getCpf());
-            row.createCell(2).setCellValue(reg.getNome());
-            row.createCell(3).setCellValue(reg.getNivelEstagio());
-            row.createCell(4).setCellValue(reg.getDataInicioStr());
-            row.createCell(5).setCellValue(reg.getDataFimStr());
-            row.createCell(6).setCellValue(reg.getBanco());
-            row.createCell(7).setCellValue(reg.getAgencia());
-            row.createCell(8).setCellValue(reg.getConta());
-        }
-
-        for (int i = 0; i < headers.length; i++) {
-            sheet.setColumnWidth(i, 5000);
-        }
-    }
+    
     
     private void criarAbaExcedentes(Workbook workbook, comparadorPlanilhas.ResultadoComparacao resultado) {
         Sheet sheet = workbook.createSheet("04 - Registros que não estão na prévia");
@@ -403,7 +405,7 @@ public class geradorRelatorioExcel {
         sheet.setColumnWidth(9, 10000);
     }
 
-    // ================== MÉTODO MODIFICADO ==================
+    
     private void criarAbaPossiveisAbreviacoes(Workbook workbook, comparadorPlanilhas.ResultadoComparacao resultado) {
         Sheet sheet = workbook.createSheet("07 - Possíveis Abreviações");
         int rowNum = 0;
@@ -424,7 +426,7 @@ public class geradorRelatorioExcel {
         }
 
         // Cabeçalho com duas colunas de nome: Financeiro (abreviado) e Cadastro (completo)
-        String[] headers = {"Matrícula", "CPF", "Nome Financeiro (abreviado)", "Nome Cadastro (completo)", 
+        String[] headers = {"Matrícula", "CPF", "Nome Prévia (abreviado)", "Nome Cadastro (completo)", 
                             "Similaridade", "Nível Estágio", "Data Início", "Data Fim", "Banco", "Agência", "Conta"};
         Row headerRow = sheet.createRow(rowNum++);
         for (int i = 0; i < headers.length; i++) {
